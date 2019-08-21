@@ -1,0 +1,4 @@
+<process xmlns="http://xmlns.oracle.com/HelloWorldApplication/HelloWorldService/HelloWorldBPELProcess">
+   <input>input66</input>
+   <input1>input167</input1>
+</process>

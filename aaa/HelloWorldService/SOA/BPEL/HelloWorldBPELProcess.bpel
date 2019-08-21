@@ -1,0 +1,106 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Oracle JDeveloper BPEL Designer 
+  
+  Created: Fri Aug 16 07:16:02 IST 2019
+  Author:  spadavala
+  Type: BPEL 2.0 Process
+  Purpose: Synchronous BPEL Process
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+-->
+<process name="HelloWorldBPELProcess"
+               targetNamespace="http://xmlns.oracle.com/HelloWorldApplication/HelloWorldService/HelloWorldBPELProcess"
+               xmlns="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+               xmlns:client="http://xmlns.oracle.com/HelloWorldApplication/HelloWorldService/HelloWorldBPELProcess"
+               xmlns:ora="http://schemas.oracle.com/xpath/extension"
+               xmlns:ui="http://xmlns.oracle.com/soa/designer"
+               xmlns:bpelx="http://schemas.oracle.com/bpel/extension"
+         xmlns:bpel="http://docs.oasis-open.org/wsbpel/2.0/process/executable"
+         xmlns:ns1="http://xmlns.oracle.com/SOAApllications/HelloWorldService/HelloWorldTargetBPELProcess">
+
+    <import ui:processWSDL="true" namespace="http://xmlns.oracle.com/HelloWorldApplication/HelloWorldService/HelloWorldBPELProcess" location="../WSDLs/HelloWorldBPELProcess.wsdl" importType="http://schemas.xmlsoap.org/wsdl/"/>
+    <!-- 
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        PARTNERLINKS                                                      
+        List of services participating in this BPEL process               
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    --> 
+  <partnerLinks>
+    <!-- 
+      The 'client' role represents the requester of this service. It is 
+      used for callback. The location and correlation information associated
+      with the client role are automatically set using WS-Addressing.
+    -->
+    <partnerLink name="helloworldbpelprocess_client" partnerLinkType="client:HelloWorldBPELProcess" myRole="HelloWorldBPELProcessProvider"/>
+    <partnerLink name="HelloWorldTargetBPELProcess.helloworldtargetbpelprocess_client"
+                 partnerLinkType="ns1:HelloWorldTargetBPELProcess" partnerRole="HelloWorldTargetBPELProcessProvider"/>
+  </partnerLinks>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      VARIABLES                                                        
+      List of messages and XML documents used within this BPEL process 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <variables>
+    <!-- Reference to the message passed as input during initiation -->
+    <variable name="inputVariable" messageType="client:HelloWorldBPELProcessRequestMessage"/>
+
+    <!-- Reference to the message that will be returned to the requester-->
+    <variable name="outputVariable" messageType="client:HelloWorldBPELProcessResponseMessage"/>
+    <variable name="Invoke_HelloBPELProcess_process_InputVariable"
+              messageType="ns1:HelloWorldTargetBPELProcessRequestMessage"/>
+    <variable name="Invoke_HelloBPELProcess_process_OutputVariable"
+              messageType="ns1:HelloWorldTargetBPELProcessResponseMessage"/>
+  </variables>
+
+  <!-- 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+     ORCHESTRATION LOGIC                                               
+     Set of activities coordinating the flow of messages across the    
+     services integrated within this business process                  
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  -->
+  <sequence name="main">
+
+    <!-- Receive input from requestor. (Note: This maps to operation defined in HelloWorldBPELProcess.wsdl) -->
+    <receive name="receiveInput" partnerLink="helloworldbpelprocess_client" portType="client:HelloWorldBPELProcess" operation="process" variable="inputVariable" createInstance="yes"/>
+    <assign name="AssignInput">
+      <copy>
+        <from>$inputVariable.payload/client:input</from>
+        <to>$Invoke_HelloBPELProcess_process_InputVariable.payload/client:input</to>
+      </copy>
+      <copy>
+        <from>$inputVariable.payload/client:input1</from>
+        <to>$Invoke_HelloBPELProcess_process_InputVariable.payload/client:input1</to>
+      </copy>
+    </assign>
+    <invoke name="Invoke_HelloBPELProcess"
+            partnerLink="HelloWorldTargetBPELProcess.helloworldtargetbpelprocess_client"
+            portType="ns1:HelloWorldTargetBPELProcess" operation="process"
+            inputVariable="Invoke_HelloBPELProcess_process_InputVariable"
+            outputVariable="Invoke_HelloBPELProcess_process_OutputVariable" bpelx:invokeAsDetail="no"/>
+    <assign name="AssignResult">
+      <copy>
+        <from>$Invoke_HelloBPELProcess_process_OutputVariable.payload/client:result</from>
+        <to>$outputVariable.payload/client:result</to>
+      </copy>
+      <copy>
+        <from>$Invoke_HelloBPELProcess_process_OutputVariable.payload/client:result1</from>
+        <to>$outputVariable.payload/client:result1</to>
+      </copy>
+    </assign>
+    <assign name="Xform_Response">
+      <bpelx:annotation>
+        <bpelx:pattern patternName="bpelx:transformation"></bpelx:pattern>
+      </bpelx:annotation>
+      <copy>
+        <from>ora:doXSLTransformForDoc("../Transformations/Xform_Target_To_Source.xsl", $Invoke_HelloBPELProcess_process_OutputVariable.payload)</from>
+        <to variable="outputVariable" part="payload"/>
+      </copy>
+    </assign>
+    <!-- Generate reply to synchronous request -->
+    <reply name="replyOutput" partnerLink="helloworldbpelprocess_client" portType="client:HelloWorldBPELProcess" operation="process" variable="outputVariable"/>
+  </sequence>
+</process>
