@@ -6,6 +6,7 @@
       <sequence>
         <element name="input" type="string"/>
         <element name="input1" type="string"/>
+        <element name="action" type="string"/>
       </sequence>
     </complexType>
   </element>
